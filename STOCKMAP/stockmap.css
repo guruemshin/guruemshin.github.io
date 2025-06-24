@@ -1,0 +1,69 @@
+body {
+    display: grid;
+    place-items: center;
+}
+.title {
+    color: black;
+    text-align: center;
+    font-weight: 600;
+    width: 500px;
+    height: 80px;
+    position: relative;
+}
+.search {
+    margin: 30px;
+}
+.search_box {
+    all: unset;
+    width: 200px;
+    height: 35px;
+    border: 1px solid black;
+    border-radius: 10px;
+    font-size: 12px;
+    padding-left: 10px;
+}
+.search_but {
+    all: unset;
+    width: 60px;
+    height: 35px;
+    background-color: black;
+    color: white;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+.brand_list > :nth-child(1) {
+    margin: 10px;
+}
+
+.category ul {
+    display: none; /* 기본은 숨김 */
+    margin-left: 20px;
+}
+  
+.category.open ul {
+    display: block; /* .open 클래스가 붙으면 보임 */
+}
+  
+.category h2 {
+    cursor: pointer;
+    user-select: none;
+    background-color: #f0f0f0;
+    padding: 5px;
+    margin: 0;
+    transition: background-color 0.3s;
+}
+  
+.category h2:hover {
+    background-color: #e0e0e0;
+}
+  
+
+@media (max-width: 768px) {
+    .title {
+        height: auto;
+        width: auto;
+    }
+}
