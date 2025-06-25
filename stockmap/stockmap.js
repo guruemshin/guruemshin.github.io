@@ -1,8 +1,13 @@
+// 한글 초성 리스트
 const initials = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+// 브랜드 위치 데이터
+const brandLocations = {};
 
 function getInitialConsonant(char) {
   const code = char.charCodeAt(0) - 0xAC00;
-  return (code >= 0 && code <= 11171) ? initials[Math.floor(code / 588)] : '';
+  if (code < 0 || code > 11171) return '';
+  return initials[Math.floor(code / 588)];
 }
 
 function renderCategories() {
@@ -12,18 +17,21 @@ function renderCategories() {
     const div = document.createElement('div');
     div.className = 'category';
     div.innerHTML = `<h2>${initial}</h2><ul></ul>`;
-    div.querySelector('h2').addEventListener('click', () => div.classList.toggle('open'));
+    div.querySelector('h2').addEventListener('click', () => {
+      div.classList.toggle('open');
+    });
     container.appendChild(div);
   });
 }
 
 function addBrandToCategory(name, location) {
-  const initial = getInitialConsonant(name[0]);
-  const category = [...document.querySelectorAll('.category')].find(cat => cat.querySelector('h2').textContent === initial);
-  if (!category) return false;
-
-  const ul = category.querySelector('ul');
-  ul.querySelector('.empty-msg')?.remove();
+  const firstChar = getInitialConsonant(name[0]);
+  const categories = document.querySelectorAll('.category');
+  let targetCategory = Array.from(categories).find(cat => cat.querySelector('h2').textContent === firstChar);
+  if (!targetCategory) return false;
+  const ul = targetCategory.querySelector('ul');
+  const emptyMsg = ul.querySelector('.empty-msg');
+  if (emptyMsg) emptyMsg.remove();
 
   const li = document.createElement('li');
   li.dataset.brand = name;
@@ -45,54 +53,60 @@ function updateEventListeners() {
   });
 }
 
-async function editLocation(brand) {
-  const docRef = db.collection('brands').doc(brand);
-  const snapshot = await docRef.get();
-  const currentLocation = snapshot.exists ? snapshot.data().location : '';
-
-  const newLoc = prompt(`${brand}의 새 위치:`, currentLocation);
-  if (!newLoc?.trim()) return;
-
-  await docRef.set({ location: newLoc.trim() });
-  loadBrands(); // 새로고침
+function editLocation(brand) {
+  const newLocation = prompt(`${brand}의 새 위치:`, brandLocations[brand] || '');
+  if (newLocation) {
+    brandLocations[brand] = newLocation.trim();
+    saveBrands();
+    const li = document.querySelector(`li[data-brand='${brand}']`);
+    if (li) {
+      const span = li.querySelector('span');
+      if (span) span.textContent = `(${brandLocations[brand]})`;
+    }
+  }
 }
 
-async function deleteBrand(brand) {
+function deleteBrand(brand) {
   if (!confirm(`${brand} 삭제할까요?`)) return;
-  await db.collection('brands').doc(brand).delete();
-  loadBrands();
+  delete brandLocations[brand];
+  saveBrands();
+  const li = document.querySelector(`li[data-brand='${brand}']`);
+  if (li) li.remove();
 }
 
-async function searchStock() {
+function searchStock() {
   const keyword = document.querySelector('.search_box').value.trim();
   const resultDiv = document.getElementById('searchResult');
-  resultDiv.textContent = '';
   let found = false;
+  resultDiv.textContent = '';
 
-  const categories = document.querySelectorAll('.category');
-  categories.forEach(cat => {
-    const ul = cat.querySelector('ul');
+  document.querySelectorAll('.category').forEach(category => {
+    const ul = category.querySelector('ul');
     const items = ul.querySelectorAll('li');
     let match = false;
 
     items.forEach(item => {
-      const brand = item.dataset.brand;
+      const brand = item.dataset.brand || '';
       if (brand.includes(keyword)) {
         item.style.display = '';
-        resultDiv.textContent = `${brand} 위치: ${item.querySelector('span')?.textContent}`;
         found = true;
         match = true;
+        resultDiv.textContent = `${brand} 위치: ${brandLocations[brand]}`;
       } else {
         item.style.display = 'none';
       }
     });
 
-    ul.querySelector('.empty-msg')?.remove();
     if (!match) {
-      const msg = document.createElement('li');
-      msg.textContent = '검색된 브랜드가 없습니다.';
-      msg.className = 'empty-msg';
-      ul.appendChild(msg);
+      if (!ul.querySelector('.empty-msg')) {
+        const li = document.createElement('li');
+        li.textContent = '검색된 브랜드가 없습니다.';
+        li.className = 'empty-msg';
+        ul.appendChild(li);
+      }
+    } else {
+      const msg = ul.querySelector('.empty-msg');
+      if (msg) msg.remove();
     }
   });
 
@@ -101,39 +115,47 @@ async function searchStock() {
   }
 }
 
-async function addBrand() {
+function addBrand() {
   const name = document.getElementById('newBrand').value.trim();
-  const location = document.getElementById('newLocation').value.trim();
-  if (!name || !location) return alert('브랜드명과 위치를 입력하세요.');
+  const loc = document.getElementById('newLocation').value.trim();
+  if (!name || !loc) return alert('브랜드명과 위치를 입력하세요.');
+  if (brandLocations[name]) return alert('이미 존재하는 브랜드입니다.');
 
-  const doc = await db.collection('brands').doc(name).get();
-  if (doc.exists) return alert('이미 존재하는 브랜드입니다.');
-
-  await db.collection('brands').doc(name).set({ location });
+  brandLocations[name] = loc;
+  saveBrands();
+  addBrandToCategory(name, loc);
+  updateEventListeners();
   document.getElementById('newBrand').value = '';
   document.getElementById('newLocation').value = '';
-  loadBrands();
 }
 
-async function loadBrands() {
+function initBrandList() {
   renderCategories();
-  const snapshot = await db.collection('brands').get();
-  snapshot.forEach(doc => {
-    const name = doc.id;
-    const loc = doc.data().location;
+  for (const [name, loc] of Object.entries(brandLocations)) {
     addBrandToCategory(name, loc);
-  });
+  }
   updateEventListeners();
 }
 
+function saveBrands() {
+  localStorage.setItem('brandLocations', JSON.stringify(brandLocations));
+}
+
+function loadBrands() {
+  const saved = localStorage.getItem('brandLocations');
+  if (saved) Object.assign(brandLocations, JSON.parse(saved));
+}
+
+// 초기화
 document.addEventListener('DOMContentLoaded', () => {
   loadBrands();
-  document.querySelector('.search_but').addEventListener('click', searchStock);
+  initBrandList();
+  document.getElementById('searchButton').addEventListener('click', searchStock);
   document.getElementById('addBrandButton').addEventListener('click', addBrand);
   document.getElementById('musinsaTitle').addEventListener('click', () => {
     document.querySelector('.search_box').value = '';
     document.getElementById('searchResult').textContent = '';
-    loadBrands();
+    initBrandList();
   });
   document.querySelector('.search_box').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
