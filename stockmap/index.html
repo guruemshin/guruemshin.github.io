@@ -16,10 +16,23 @@
         <p id="musinsaTitle">MUSINSA STORE HONGDAE</p>
         <p>STOCK MAP</p>
     </div>
+ <!-- 검색 -->
     <div class="search">
-        <input type="text" placeholder="브랜드 검색" class="search_box">
-        <button class="search_but">검색</button>
-        <div id="searchResult" style="margin-top: 10px; font-weight: bold;"></div>
+      <input type="text" placeholder="브랜드 검색" class="search_box">
+      <button id="searchButton" class="search_but">검색</button>
+    </div>
+
+    <!-- 결과 출력 -->
+    <div id="searchResult" style="margin-top: 10px; font-weight: bold;"></div>
+
+    <!-- 브랜드 리스트 자동 생성될 영역 -->
+    <div id="categoryContainer" class="brand_list"></div>
+
+    <!-- 브랜드 추가 -->
+    <div class="add-brand">
+      <input type="text" id="newBrand" placeholder="브랜드 이름">
+      <input type="text" id="newLocation" placeholder="위치 (예: 1.A.11)">
+      <button id="addBrandButton">브랜드 추가</button>
     </div>
 
     <div class="brand_list">
