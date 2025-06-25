@@ -1,13 +1,35 @@
-// 한글 초성 리스트
-const initials = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+// Firebase 연동 (v9 모듈형 SDK)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// 브랜드 위치 데이터
-const brandLocations = {};
+// 🔐 Firebase 구성 정보 입력 (실제 프로젝트 값으로 교체하세요)
+const firebaseConfig = {
+  apiKey: "AIzaSyAszuroZ6_o2LQgTvAOzjuusjTnz7tshC4",
+  authDomain: "musinsahd-stock.firebaseapp.com",
+  projectId: "musinsahd-stock",
+  storageBucket: "musinsahd-stock.firebasestorage.app",
+  messagingSenderId: "394177254626",
+  appId: "1:394177254626:web:b7a8c2ac2596291af37abb",
+  measurementId: "G-5Z66M2E0CR"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===== UI & 로직 코드 =====
+const initials = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 
 function getInitialConsonant(char) {
   const code = char.charCodeAt(0) - 0xAC00;
-  if (code < 0 || code > 11171) return '';
-  return initials[Math.floor(code / 588)];
+  return (code >= 0 && code <= 11171) ? initials[Math.floor(code / 588)] : '';
 }
 
 function renderCategories() {
@@ -17,21 +39,18 @@ function renderCategories() {
     const div = document.createElement('div');
     div.className = 'category';
     div.innerHTML = `<h2>${initial}</h2><ul></ul>`;
-    div.querySelector('h2').addEventListener('click', () => {
-      div.classList.toggle('open');
-    });
+    div.querySelector('h2').addEventListener('click', () => div.classList.toggle('open'));
     container.appendChild(div);
   });
 }
 
 function addBrandToCategory(name, location) {
-  const firstChar = getInitialConsonant(name[0]);
-  const categories = document.querySelectorAll('.category');
-  let targetCategory = Array.from(categories).find(cat => cat.querySelector('h2').textContent === firstChar);
-  if (!targetCategory) return false;
-  const ul = targetCategory.querySelector('ul');
-  const emptyMsg = ul.querySelector('.empty-msg');
-  if (emptyMsg) emptyMsg.remove();
+  const initial = getInitialConsonant(name[0]);
+  const category = [...document.querySelectorAll('.category')].find(cat => cat.querySelector('h2').textContent === initial);
+  if (!category) return false;
+
+  const ul = category.querySelector('ul');
+  ul.querySelector('.empty-msg')?.remove();
 
   const li = document.createElement('li');
   li.dataset.brand = name;
@@ -53,60 +72,54 @@ function updateEventListeners() {
   });
 }
 
-function editLocation(brand) {
-  const newLocation = prompt(`${brand}의 새 위치:`, brandLocations[brand] || '');
-  if (newLocation) {
-    brandLocations[brand] = newLocation.trim();
-    saveBrands();
-    const li = document.querySelector(`li[data-brand='${brand}']`);
-    if (li) {
-      const span = li.querySelector('span');
-      if (span) span.textContent = `(${brandLocations[brand]})`;
-    }
-  }
+async function editLocation(brand) {
+  const docRef = doc(db, 'brands', brand);
+  const snapshot = await getDoc(docRef);
+  const currentLocation = snapshot.exists() ? snapshot.data().location : '';
+
+  const newLoc = prompt(`${brand}의 새 위치:`, currentLocation);
+  if (!newLoc?.trim()) return;
+
+  await setDoc(docRef, { location: newLoc.trim() });
+  loadBrands();
 }
 
-function deleteBrand(brand) {
+async function deleteBrand(brand) {
   if (!confirm(`${brand} 삭제할까요?`)) return;
-  delete brandLocations[brand];
-  saveBrands();
-  const li = document.querySelector(`li[data-brand='${brand}']`);
-  if (li) li.remove();
+  await deleteDoc(doc(db, 'brands', brand));
+  loadBrands();
 }
 
-function searchStock() {
+async function searchStock() {
   const keyword = document.querySelector('.search_box').value.trim();
   const resultDiv = document.getElementById('searchResult');
-  let found = false;
   resultDiv.textContent = '';
+  let found = false;
 
-  document.querySelectorAll('.category').forEach(category => {
-    const ul = category.querySelector('ul');
+  const categories = document.querySelectorAll('.category');
+  categories.forEach(cat => {
+    const ul = cat.querySelector('ul');
     const items = ul.querySelectorAll('li');
     let match = false;
 
     items.forEach(item => {
-      const brand = item.dataset.brand || '';
+      const brand = item.dataset.brand;
       if (brand.includes(keyword)) {
         item.style.display = '';
+        resultDiv.textContent = `${brand} 위치: ${item.querySelector('span')?.textContent}`;
         found = true;
         match = true;
-        resultDiv.textContent = `${brand} 위치: ${brandLocations[brand]}`;
       } else {
         item.style.display = 'none';
       }
     });
 
+    ul.querySelector('.empty-msg')?.remove();
     if (!match) {
-      if (!ul.querySelector('.empty-msg')) {
-        const li = document.createElement('li');
-        li.textContent = '검색된 브랜드가 없습니다.';
-        li.className = 'empty-msg';
-        ul.appendChild(li);
-      }
-    } else {
-      const msg = ul.querySelector('.empty-msg');
-      if (msg) msg.remove();
+      const msg = document.createElement('li');
+      msg.textContent = '검색된 브랜드가 없습니다.';
+      msg.className = 'empty-msg';
+      ul.appendChild(msg);
     }
   });
 
@@ -115,47 +128,41 @@ function searchStock() {
   }
 }
 
-function addBrand() {
+async function addBrand() {
   const name = document.getElementById('newBrand').value.trim();
-  const loc = document.getElementById('newLocation').value.trim();
-  if (!name || !loc) return alert('브랜드명과 위치를 입력하세요.');
-  if (brandLocations[name]) return alert('이미 존재하는 브랜드입니다.');
+  const location = document.getElementById('newLocation').value.trim();
+  if (!name || !location) return alert('브랜드명과 위치를 입력하세요.');
 
-  brandLocations[name] = loc;
-  saveBrands();
-  addBrandToCategory(name, loc);
-  updateEventListeners();
+  const docRef = doc(db, 'brands', name);
+  const snapshot = await getDoc(docRef);
+  if (snapshot.exists()) return alert('이미 존재하는 브랜드입니다.');
+
+  await setDoc(docRef, { location });
   document.getElementById('newBrand').value = '';
   document.getElementById('newLocation').value = '';
+  loadBrands();
 }
 
-function initBrandList() {
+async function loadBrands() {
   renderCategories();
-  for (const [name, loc] of Object.entries(brandLocations)) {
+  const snapshot = await getDocs(collection(db, "brands"));
+  snapshot.forEach(docSnap => {
+    const name = docSnap.id;
+    const loc = docSnap.data().location;
     addBrandToCategory(name, loc);
-  }
+  });
   updateEventListeners();
 }
 
-function saveBrands() {
-  localStorage.setItem('brandLocations', JSON.stringify(brandLocations));
-}
-
-function loadBrands() {
-  const saved = localStorage.getItem('brandLocations');
-  if (saved) Object.assign(brandLocations, JSON.parse(saved));
-}
-
-// 초기화
+// === 초기화 ===
 document.addEventListener('DOMContentLoaded', () => {
   loadBrands();
-  initBrandList();
-  document.getElementById('searchButton').addEventListener('click', searchStock);
+  document.querySelector('.search_but').addEventListener('click', searchStock);
   document.getElementById('addBrandButton').addEventListener('click', addBrand);
   document.getElementById('musinsaTitle').addEventListener('click', () => {
     document.querySelector('.search_box').value = '';
     document.getElementById('searchResult').textContent = '';
-    initBrandList();
+    loadBrands();
   });
   document.querySelector('.search_box').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
