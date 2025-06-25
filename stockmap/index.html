@@ -1,148 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>무신사 홍대 스탁 맵</title>
-    <script src="stockmap.js"></script>
     <link rel="stylesheet" href="stockmap.css">
     <style>
         body {
-          font-family: 'Pretendard', sans-serif;
+            font-family: 'Pretendard', sans-serif;
         }
-      </style>
+    </style>
 </head>
 <body>
     <div class="title">
-        <p id="musinsaTitle" >MUSINSA STORE HONGDAE</p>
-        <P>STOCK MAP</P>
+        <p id="musinsaTitle">MUSINSA STORE HONGDAE</p>
+        <p>STOCK MAP</p>
     </div>
     <div class="search">
         <input type="text" placeholder="브랜드 검색" class="search_box">
-        <button onclick="searchStock()" class="search_but">검색</button>
+        <button class="search_but">검색</button>
         <div id="searchResult" style="margin-top: 10px; font-weight: bold;"></div>
     </div>
+
     <div class="brand_list">
         <div>무신사 스토어 홍대 입점 브랜드</div>
-        <div>
-            <div class="category">
-                <h2>ㄱ</h2>
-                <ul>
-                  <li>가방</li>
-                  <li>고양이</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㄴ</h2>
-                <ul>
-                  <li>나무</li>
-                  <li>노트북</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㄷ</h2>
-                <ul>
-                  <li>다리</li>
-                  <li>도서관</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㄹ</h2>
-                <ul>
-                  <li>라디오</li>
-                  <li>로봇</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅁ</h2>
-                <ul>
-                  <li>마우스</li>
-                  <li>모니터</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅂ</h2>
-                <ul>
-                  <li>바다</li>
-                  <li>버스</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅅ</h2>
-                <ul>
-                  <li>사과</li>
-                  <li>손목시계</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅇ</h2>
-                <ul>
-                  <li>아이스크림</li>
-                  <li>오렌지</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅈ</h2>
-                <ul>
-                  <li>자동차</li>
-                  <li>전화기</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅊ</h2>
-                <ul>
-                  <li>책</li>
-                  <li>초콜릿</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅋ</h2>
-                <ul>
-                  <li>카메라</li>
-                  <li>커피</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅌ</h2>
-                <ul>
-                  <li>타이어</li>
-                  <li>택시</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅍ</h2>
-                <ul>
-                  <li>파도</li>
-                  <li>펜</li>
-                </ul>
-              </div>
-            
-              <div class="category">
-                <h2>ㅎ</h2>
-                <ul>
-                  <li>하늘</li>
-                  <li>호수</li>
-                </ul>
-              </div>            
+        <div id="categoryContainer">
+            <!-- 카테고리 영역은 JavaScript에서 동적으로 렌더링됨 -->
         </div>
+
         <div class="add-brand">
             <input type="text" id="newBrand" placeholder="브랜드 이름">
             <input type="text" id="newLocation" placeholder="위치 (예: 1.A.11)">
-            <button onclick="addBrand()">브랜드 추가</button>
+            <button id="addBrandButton">브랜드 추가</button>
         </div>
     </div>
-    
+
+    <!-- 자바스크립트는 body 마지막에 위치시켜 로드 순서 보장 -->
+    <script src="stockmap.js"></script>
 </body>
 </html>
