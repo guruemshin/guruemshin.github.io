@@ -36,11 +36,20 @@ function addBrandToCategory(name, location) {
   li.dataset.brand = name;
   li.innerHTML = `
     ${name} <span>(${location})</span>
-    <button onclick="editLocation('${name}')">수정</button>
-    <button onclick="deleteBrand('${name}')" style="color:red;">삭제</button>
+    <button class="edit-btn" data-brand="${name}">수정</button>
+    <button class="delete-btn" data-brand="${name}" style="color:red;">삭제</button>
   `;
   ul.appendChild(li);
   return true;
+}
+
+function updateEventListeners() {
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.onclick = () => editLocation(btn.dataset.brand);
+  });
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.onclick = () => deleteBrand(btn.dataset.brand);
+  });
 }
 
 function editLocation(brand) {
@@ -48,7 +57,12 @@ function editLocation(brand) {
   if (newLocation) {
     brandLocations[brand] = newLocation.trim();
     saveBrands();
-    initBrandList();
+
+    const li = document.querySelector(`li[data-brand='${brand}']`);
+    if (li) {
+      const span = li.querySelector('span');
+      if (span) span.textContent = `(${brandLocations[brand]})`;
+    }
   }
 }
 
@@ -56,7 +70,8 @@ function deleteBrand(brand) {
   if (!confirm(`${brand} 삭제할까요?`)) return;
   delete brandLocations[brand];
   saveBrands();
-  initBrandList();
+  const li = document.querySelector(`li[data-brand='${brand}']`);
+  if (li) li.remove();
 }
 
 function searchStock() {
@@ -108,7 +123,9 @@ function addBrand() {
 
   brandLocations[name] = loc;
   saveBrands();
-  initBrandList();
+  addBrandToCategory(name, loc);
+  updateEventListeners();
+
   document.getElementById('newBrand').value = '';
   document.getElementById('newLocation').value = '';
 }
@@ -118,6 +135,7 @@ function initBrandList() {
   for (const [name, loc] of Object.entries(brandLocations)) {
     addBrandToCategory(name, loc);
   }
+  updateEventListeners();
 }
 
 function saveBrands() {
